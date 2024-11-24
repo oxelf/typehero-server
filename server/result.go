@@ -16,6 +16,19 @@ func (s *Server) postResults(c *gin.Context) {
         return
     }
 
+    score, err := verifyCaptcha(result.CaptchaToken)
+	if err != nil || score < 0.5 {
+        c.AbortWithStatusJSON(403, gin.H{
+        "error": "nice try bogdan",
+        })
+		return
+	}
+
+    if (len(result.UserName) > 16 || len(result.UserName) < 3) {
+        c.AbortWithStatus(403)
+        return
+    }
+
     result.Date = time.Now()
 
     err = s.db.CreateResult(result)

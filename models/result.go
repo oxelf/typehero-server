@@ -13,4 +13,5 @@ type Result struct {
     Language string `json:"language"`
     WordAmount int `json:"wordAmount"`
     Rank int `json:"rank" gorm:"rank"`
+    CaptchaToken string `json:"captchaToken" gorm:"-"`
 }
