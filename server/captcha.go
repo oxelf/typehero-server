@@ -2,18 +2,18 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 )
 
-
 const recaptchaURL = "https://www.google.com/recaptcha/api/siteverify"
 
 // Struct for incoming JSON
 type Submission struct {
-	Username    string `json:"username"`
-	Score       int    `json:"score"`
+	Username     string `json:"username"`
+	Score        int    `json:"score"`
 	CaptchaToken string `json:"captchaToken"`
 }
 
@@ -37,6 +37,8 @@ func verifyCaptcha(token string) (float64, error) {
 		return 0, err
 	}
 	defer resp.Body.Close()
+
+	fmt.Printf("recaptcha response: %v \n", resp)
 
 	var recaptchaResponse RecaptchaResponse
 	if err := json.NewDecoder(resp.Body).Decode(&recaptchaResponse); err != nil {

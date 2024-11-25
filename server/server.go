@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"sync"
+	"time"
 	"typehero_server/database"
 
 	"github.com/gin-contrib/cors"
@@ -11,32 +13,48 @@ import (
 )
 
 type Server struct {
-db *database.Database
+	db         *database.Database
+	countMutex sync.Mutex
+	count      int
 }
-
 
 func StartServer(db *database.Database) error {
-    s := Server{
-        db: db,
-    }
+	s := Server{
+		db:         db,
+		count:      0,
+		countMutex: sync.Mutex{},
+	}
 
-    router := gin.New()
-    log := logrus.New()
-    config := cors.DefaultConfig()
-    config.AllowAllOrigins = true
-    config.AllowHeaders = append(config.AllowHeaders, "Authorization")
-    config.AllowAllOrigins = true
+	count := s.getSiteViews()
+	s.count = count
 
-    router.Use(ginlogrus.Logger(log), cors.New(config), gin.Recovery())
+	viewsTicker := time.NewTicker(10 * time.Second)
 
-    router.GET("/healthcheck", func(c *gin.Context) {
-    fmt.Println("got healthcheck")
-        c.Status(200)
-    } )
+	go func() {
+		for {
+			<-viewsTicker.C
+			s.saveSiteViews()
+		}
+	}()
 
-    router.POST("result", s.postResults)
-    router.GET("leaderboard", s.getLeaderboard)
+	router := gin.New()
+	log := logrus.New()
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowHeaders = append(config.AllowHeaders, "Authorization")
+	config.AllowAllOrigins = true
 
-    return router.Run(":8011")
+	router.Use(ginlogrus.Logger(log), cors.New(config), gin.Recovery())
+
+	router.GET("/healthcheck", func(c *gin.Context) {
+		fmt.Println("got healthcheck")
+		c.Status(200)
+	})
+
+	router.POST("result", s.postResults)
+	router.GET("leaderboard", s.getLeaderboard)
+	router.GET("stats", s.getStats)
+	router.GET("view", s.increaseSiteViews)
+
+	return router.Run(":8011")
 }
-

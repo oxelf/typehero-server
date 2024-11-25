@@ -11,11 +11,11 @@ import (
 )
 
 type Database struct {
-    *gorm.DB
+	*gorm.DB
 }
 
-func InitDatabase() (*Database, error)  {
-db, err := gorm.Open(sqlite.Open("db.db"), &gorm.Config{
+func InitDatabase(path string) (*Database, error) {
+	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{
 		Logger: logger.New(
 			log.StandardLogger(),
 			logger.Config{
@@ -35,5 +35,10 @@ db, err := gorm.Open(sqlite.Open("db.db"), &gorm.Config{
 		log.Error(err)
 		return nil, err
 	}
-return &Database{db}, nil
+	err = db.Table("views").AutoMigrate(&models.SiteViews{})
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return &Database{db}, nil
 }
